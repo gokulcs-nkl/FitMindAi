@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FitMind AI — Personalized Planner for Students</title>
+    <meta name="description"
+        content="AI-powered personalized workout and diet planner designed specifically for students. Get custom meal plans, workout routines, and calorie tracking." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="css/global.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/pages.css" />
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.13.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
+</head>
+
+<body>
+    <!-- Onboarding Modal (first run) -->
+    <div id="onboarding-overlay" class="onboarding-overlay hidden">
+        <div class="onboarding-modal">
+            <div class="onboarding-header">
+                <div class="ob-logo"><span class="logo-icon">🧠</span><span class="logo-text">FitMind <span
+                            class="accent">AI</span></span></div>
+                <p class="ob-tagline">Your personalized AI health companion for student life</p>
+            </div>
+            <div class="ob-progress-bar">
+                <div class="ob-progress-fill" id="ob-progress"></div>
+            </div>
+            <div id="ob-steps">
+                <!-- Step 1: Basic Info -->
+                <div class="ob-step active" data-step="1">
+                    <h2>👋 Let's get to know you</h2>
+                    <p class="ob-desc">Tell us about yourself so we can personalize everything.</p>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="ob-name" placeholder="e.g. Rahul Kumar" />
+                        </div>
+                        <div class="form-group">
+                            <label>Age</label>
+                            <input type="number" id="ob-age" placeholder="e.g. 20" min="13" max="35" />
+                        </div>
+                        <div class="form-group">
+                            <label>Gender</label>
+                            <select id="ob-gender">
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Current Weight (kg)</label>
+                            <input type="number" id="ob-weight" placeholder="e.g. 65" min="30" max="200" step="0.1" />
+                        </div>
+                        <div class="form-group">
+                            <label>Height (cm)</label>
+                            <input type="number" id="ob-height" placeholder="e.g. 170" min="130" max="250" />
+                        </div>
+                        <div class="form-group">
+                            <label>Target Weight (kg)</label>
+                            <input type="number" id="ob-target-weight" placeholder="e.g. 72" min="30" max="200"
+                                step="0.1" />
+                        </div>
+                    </div>
+                </div>
+                <!-- Step 2: Goals -->
+                <div class="ob-step" data-step="2">
+                    <h2>🎯 Your Health Goal</h2>
+                    <p class="ob-desc">What are you aiming for?</p>
+                    <div class="goal-cards">
+                        <div class="goal-card" data-goal="gain">
+                            <span class="gc-icon">💪</span>
+                            <h3>Muscle Gain</h3>
+                            <p>Build muscle & gain healthy weight</p>
+                        </div>
+                        <div class="goal-card" data-goal="lose">
+                            <span class="gc-icon">🔥</span>
+                            <h3>Fat Loss</h3>
+                            <p>Lose fat & get leaner</p>
+                        </div>
+                        <div class="goal-card" data-goal="maintain">
+                            <span class="gc-icon">⚖️</span>
+                            <h3>Maintain</h3>
+                            <p>Stay fit & maintain weight</p>
+                        </div>
+                    </div>
+                    <div class="form-grid mt-20">
+                        <div class="form-group">
+                            <label>Activity Level</label>
+                            <select id="ob-activity">
+                                <option value="sedentary">Sedentary (desk/study only)</option>
+                                <option value="light">Light (1-2 days/week exercise)</option>
+                                <option value="moderate" selected>Moderate (3-5 days/week)</option>
+                                <option value="active">Active (6-7 days/week)</option>
+                                <option value="very_active">Very Active (athlete/physical work)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Fitness Level</label>
+                            <select id="ob-fitness-level">
+                                <option value="beginner">Beginner</option>
+                                <option value="intermediate">Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <!-- Step 3: Diet Preferences -->
+                <div class="ob-step" data-step="3">
+                    <h2>🍽️ Food Preferences</h2>
+                    <p class="ob-desc">We'll customize meals to your taste and culture.</p>
+                    <div class="pref-cards">
+                        <div class="pref-card active" data-pref="vegetarian" id="pref-veg">🥦 Vegetarian</div>
+                        <div class="pref-card" data-pref="non-vegetarian" id="pref-nonveg">🍗 Non-Vegetarian</div>
+                        <div class="pref-card" data-pref="vegan" id="pref-vegan">🌱 Vegan</div>
+                    </div>
+                    <div class="form-grid mt-20">
+                        <div class="form-group">
+                            <label>Your Region (State)</label>
+                            <select id="ob-region">
+                                <option value="north">North India (Punjab, UP, Delhi, Haryana)</option>
+                                <option value="south">South India (Tamil Nadu, Kerala, Karnataka, AP)</option>
+                                <option value="west">West India (Maharashtra, Gujarat, Rajasthan)</option>
+                                <option value="east">East India (Bengal, Odisha, Bihar, Jharkhand)</option>
+                                <option value="northeast">Northeast India</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Weekly Food Budget (₹)</label>
+                            <input type="number" id="ob-budget" placeholder="e.g. 800" min="200" max="5000" />
+                        </div>
+                    </div>
+                </div>
+                <!-- Step 4: Environment -->
+                <div class="ob-step" data-step="4">
+                    <h2>🏠 Your Living & Gym Setup</h2>
+                    <p class="ob-desc">Tell us where you'll be working out.</p>
+                    <div class="env-cards">
+                        <div class="env-card" data-env="hostel">
+                            <span class="ec-icon">🏢</span>
+                            <h3>Hostel / PG</h3>
+                            <p>Limited space, shared mess</p>
+                        </div>
+                        <div class="env-card" data-env="home">
+                            <span class="ec-icon">🏠</span>
+                            <h3>Home</h3>
+                            <p>Home workout, home meals</p>
+                        </div>
+                        <div class="env-card" data-env="gym">
+                            <span class="ec-icon">🏋️</span>
+                            <h3>Gym Access</h3>
+                            <p>Full gym equipment available</p>
+                        </div>
+                    </div>
+                    <div class="form-group mt-20">
+                        <label>College/City Name (optional)</label>
+                        <input type="text" id="ob-college" placeholder="e.g. Anna University, Chennai" />
+                    </div>
+                </div>
+            </div>
+            <div class="ob-nav">
+                <button class="btn-outline" id="ob-back" onclick="obBack()" style="display:none">← Back</button>
+                <button class="btn-primary" id="ob-next" onclick="obNext()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Shell -->
+    <div id="app" class="app-shell hidden">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <span class="logo-icon">🧠</span>
+                <span class="logo-text">FitMind <span class="accent">AI</span></span>
+            </div>
+            <div class="sidebar-user" id="sidebar-user">
+                <div class="user-avatar" id="sidebar-avatar">R</div>
+                <div class="user-info">
+                    <div class="user-name" id="sidebar-name">Loading...</div>
+                    <div class="user-goal" id="sidebar-goal">Goal: --</div>
+                </div>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="#" class="nav-link active" data-page="dashboard" onclick="navigate('dashboard')"><span
+                            class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a></li>
+                <li><a href="#" class="nav-link" data-page="diet" onclick="navigate('diet')"><span
+                            class="nav-icon">🍽️</span><span class="nav-label">Diet Plan</span></a></li>
+                <li><a href="#" class="nav-link" data-page="workout" onclick="navigate('workout')"><span
+                            class="nav-icon">💪</span><span class="nav-label">Workout</span></a></li>
+                <li><a href="#" class="nav-link" data-page="tracker" onclick="navigate('tracker')"><span
+                            class="nav-icon">📟</span><span class="nav-label">Tracker</span></a></li>
+                <li><a href="#" class="nav-link" data-page="scanner" onclick="navigate('scanner')"><span
+                            class="nav-icon">📷</span><span class="nav-label">Food Scanner</span></a></li>
+                <li><a href="#" class="nav-link" data-page="hostel" onclick="navigate('hostel')"><span
+                            class="nav-icon">🏢</span><span class="nav-label">Hostel Mode</span></a></li>
+                <li><a href="#" class="nav-link" data-page="advisor" onclick="navigate('advisor')"><span
+                            class="nav-icon">🎯</span><span class="nav-label">AI Advisor</span></a></li>
+                <li><a href="#" class="nav-link" data-page="ml-insights" onclick="navigate('ml-insights')"><span
+                            class="nav-icon">🤖</span><span class="nav-label">ML Insights</span></a></li>
+                <li><a href="#" class="nav-link" data-page="budget" onclick="navigate('budget')"><span
+                            class="nav-icon">💰</span><span class="nav-label">Budget</span></a></li>
+                <li><a href="#" class="nav-link" data-page="history" onclick="navigate('history')"><span
+                            class="nav-icon">📅</span><span class="nav-label">History</span></a></li>
+                <li><a href="#" class="nav-link" data-page="settings" onclick="navigate('settings')"><span
+                            class="nav-icon">⚙️</span><span class="nav-label">Settings</span></a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="tdee-badge" id="sidebar-tdee">TDEE: <strong id="tdee-val">--</strong> kcal</div>
+            </div>
+        </nav>
+
+        <!-- Mobile Top Bar -->
+        <header class="mobile-header">
+            <button class="hamburger" onclick="toggleSidebar()">☰</button>
+            <div class="mobile-logo">🧠 FitMind AI</div>
+            <div class="mobile-notif" onclick="navigate('settings')">🔔</div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content">
+            <!-- Pages injected here by JS -->
+        </main>
+
+        <!-- Mobile Bottom Tab -->
+        <nav class="bottom-tab">
+            <a href="#" class="tab-item active" data-page="dashboard"
+                onclick="navigate('dashboard')"><span>📊</span><small>Home</small></a>
+            <a href="#" class="tab-item" data-page="diet"
+                onclick="navigate('diet')"><span>🍽️</span><small>Diet</small></a>
+            <a href="#" class="tab-item" data-page="workout"
+                onclick="navigate('workout')"><span>💪</span><small>Workout</small></a>
+            <a href="#" class="tab-item" data-page="tracker"
+                onclick="navigate('tracker')"><span>📟</span><small>Track</small></a>
+            <a href="#" class="tab-item" data-page="ml-insights"
+                onclick="navigate('ml-insights')"><span>🤖</span><small>ML</small></a>
+        </nav>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Scripts -->
+    <script src="js/data/foods.js"></script>
+    <script src="js/data/exercises.js"></script>
+    <script src="js/data/meal-plans.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/ai-diet.js"></script>
+    <script src="js/ai-workout.js"></script>
+    <script src="js/calorie-image.js"></script>
+    <script src="js/tracker.js"></script>
+    <script src="js/goal-engine.js"></script>
+    <script src="js/hostel-mode.js"></script>
+    <script src="js/location.js"></script>
+    <script src="js/weather.js"></script>
+    <script src="js/budget.js"></script>
+    <script src="js/weight-advisor.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/dashboard.js"></script>
+    <!-- ML Models -->
+    <script src="js/ml-progress.js"></script>
+    <script src="js/ml-tdee.js"></script>
+    <script src="js/ml-meals.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
