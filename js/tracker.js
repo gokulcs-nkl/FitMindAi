@@ -3,38 +3,39 @@
 // Daily calorie & nutrition tracking UI logic
 // ==========================================
 window.Tracker = {
-    currentMealType: 'breakfast',
-    searchTimeout: null,
+  currentMealType: 'breakfast',
+  searchTimeout: null,
+  searchResults: [],
 
-    init() {
-        this.renderPage();
-    },
+  init() {
+    this.renderPage();
+  },
 
-    renderPage() {
-        const profile = window.Store.getProfile();
-        const plan = window.Store.getDietPlan();
-        const log = window.Store.getDayLog();
-        const totals = window.Store.getDayTotals();
-        const target = plan?.calorieTarget || 2000;
-        const macros = plan?.macros || { protein: 150, carbs: 250, fat: 67 };
-        const waterGoal = plan ? window.AIDiet.getWaterGoal(profile?.weight || 70) : { cups: 8 };
+  renderPage() {
+    const profile = window.Store.getProfile();
+    const plan = window.Store.getDietPlan();
+    const log = window.Store.getDayLog();
+    const totals = window.Store.getDayTotals();
+    const target = plan?.calorieTarget || 2000;
+    const macros = plan?.macros || { protein: 150, carbs: 250, fat: 67 };
+    const waterGoal = plan ? window.AIDiet.getWaterGoal(profile?.weight || 70) : { cups: 8 };
 
-        const caloriePct = Math.min(100, Math.round(totals.kcal / target * 100));
-        const proteinPct = Math.min(100, Math.round(totals.protein / macros.protein * 100));
-        const carbsPct = Math.min(100, Math.round(totals.carbs / macros.carbs * 100));
-        const fatPct = Math.min(100, Math.round(totals.fat / macros.fat * 100));
+    const caloriePct = Math.min(100, Math.round(totals.kcal / target * 100));
+    const proteinPct = Math.min(100, Math.round(totals.protein / macros.protein * 100));
+    const carbsPct = Math.min(100, Math.round(totals.carbs / macros.carbs * 100));
+    const fatPct = Math.min(100, Math.round(totals.fat / macros.fat * 100));
 
-        // Calorie ring gradient
-        const r = 68;
-        const circ = 2 * Math.PI * r;
-        const dashOffset = circ * (1 - caloriePct / 100);
-        const ringColor = caloriePct > 100 ? '#ff5252' : caloriePct > 85 ? '#ffd740' : '#00e676';
+    // Calorie ring gradient
+    const r = 68;
+    const circ = 2 * Math.PI * r;
+    const dashOffset = circ * (1 - caloriePct / 100);
+    const ringColor = caloriePct > 100 ? '#ff5252' : caloriePct > 85 ? '#ffd740' : '#00e676';
 
-        const watercupsHtml = Array.from({ length: waterGoal.cups }, (_, i) =>
-            `<div class="water-cup ${i < log.water ? 'filled' : ''}" onclick="Tracker.toggleWater(${i})" title="Cup ${i + 1}">💧</div>`
-        ).join('');
+    const watercupsHtml = Array.from({ length: waterGoal.cups }, (_, i) =>
+      `<div class="water-cup ${i < log.water ? 'filled' : ''}" onclick="Tracker.toggleWater(${i})" title="Cup ${i + 1}">💧</div>`
+    ).join('');
 
-        return `
+    return `
 <div class="page-header">
   <h1 class="text-gradient">📟 Nutrition Tracker</h1>
   <p class="page-subtitle">Track everything you eat today — ${new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
@@ -49,7 +50,7 @@ window.Tracker = {
       </div>
       <div class="food-search-wrap" style="position:relative">
         <span class="food-search-icon">🔍</span>
-        <input type="text" class="food-search" id="tracker-search" placeholder="Search food (e.g. banana, rice, egg...)" oninput="Tracker.onSearchInput(this.value)" autocomplete="off" />
+        <input type="text" class="food-search" id="tracker-search" placeholder="Search food (e.g. banana, rice, egg...)" oninput="Tracker.onSearchInput(this.value)" onblur="Tracker.onSearchBlur()" autocomplete="off" />
         <div class="food-results hidden" id="tracker-results"></div>
       </div>
       <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
@@ -65,8 +66,8 @@ window.Tracker = {
         <span class="badge badge-blue">${log.foods.length} items</span>
       </div>
       ${log.foods.length === 0
-                ? `<div class="empty-state"><div class="empty-icon">🍽️</div><div class="empty-title">Nothing tracked yet</div><div class="empty-desc">Search and add your first meal above!</div></div>`
-                : `<div class="tracker-log">${log.foods.map((f, i) => `
+        ? `<div class="empty-state"><div class="empty-icon">🍽️</div><div class="empty-title">Nothing tracked yet</div><div class="empty-desc">Search and add your first meal above!</div></div>`
+        : `<div class="tracker-log">${log.foods.map((f, i) => `
         <div class="log-entry">
           <div class="item-left">
             <span class="item-icon">${f.emoji || '🍽️'}</span>
@@ -80,7 +81,7 @@ window.Tracker = {
             <button class="log-delete" onclick="Tracker.removeFood(${i})">✕</button>
           </div>
         </div>`).join('')}</div>`
-            }
+      }
       ${log.foods.length > 0 ? `
       <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:0.85rem;color:var(--text-secondary)">Total today</span>
@@ -141,78 +142,88 @@ window.Tracker = {
     </div>
   </div>
 </div>`;
-    },
+  },
 
-    setMeal(mealType) {
-        this.currentMealType = mealType;
-        // Re-render tracker
-        document.getElementById('main-content').innerHTML = this.renderPage();
-        this.bindSearch();
-    },
+  setMeal(mealType) {
+    this.currentMealType = mealType;
+    // Re-render tracker
+    document.getElementById('main-content').innerHTML = this.renderPage();
+    this.bindSearch();
+  },
 
-    bindSearch() {
-        // Done via oninput in HTML
-    },
+  bindSearch() {
+    // Done via oninput in HTML
+  },
 
-    onSearchInput(query) {
-        clearTimeout(this.searchTimeout);
-        const resultsEl = document.getElementById('tracker-results');
-        if (!query.trim()) { resultsEl.classList.add('hidden'); return; }
-        this.searchTimeout = setTimeout(() => {
-            const profile = window.Store.getProfile();
-            const vegPref = profile?.foodPreference || 'all';
-            const results = window.searchFoods(query, vegPref);
-            // Also search custom foods
-            const custom = window.Store.getCustomFoods().filter(f => f.name.toLowerCase().includes(query.toLowerCase()));
-            const all = [...results, ...custom].slice(0, 8);
-            if (all.length === 0) {
-                resultsEl.classList.add('hidden');
-                return;
-            }
-            resultsEl.innerHTML = all.map((f, i) =>
-                `<div class="food-result-item" onclick="Tracker.selectFood(${JSON.stringify(JSON.stringify(f))})">
+  onSearchBlur() {
+    // Delay hiding results so onmousedown on result items fires first
+    setTimeout(() => {
+      const resultsEl = document.getElementById('tracker-results');
+      if (resultsEl) resultsEl.classList.add('hidden');
+    }, 200);
+  },
+
+  onSearchInput(query) {
+    clearTimeout(this.searchTimeout);
+    const resultsEl = document.getElementById('tracker-results');
+    if (!query.trim()) { resultsEl.classList.add('hidden'); return; }
+    this.searchTimeout = setTimeout(() => {
+      const profile = window.Store.getProfile();
+      const vegPref = profile?.foodPreference || 'all';
+      const results = window.searchFoods(query, vegPref);
+      // Also search custom foods
+      const custom = window.Store.getCustomFoods().filter(f => f.name.toLowerCase().includes(query.toLowerCase()));
+      const all = [...results, ...custom].slice(0, 8);
+      if (all.length === 0) {
+        resultsEl.classList.add('hidden');
+        return;
+      }
+      this.searchResults = all;
+      resultsEl.innerHTML = all.map((f, i) =>
+        `<div class="food-result-item" onmousedown="Tracker.selectFood(${i})">
           <div>
             <div class="food-result-name">${f.emoji || '🍽️'} ${f.name}</div>
             <div style="font-size:0.72rem;color:var(--text-secondary)">${f.protein}g protein · ${f.carbs}g carbs</div>
           </div>
           <div class="food-result-kcal">${f.kcal} kcal</div>
         </div>`
-            ).join('');
-            resultsEl.classList.remove('hidden');
-        }, 300);
-    },
+      ).join('');
+      resultsEl.classList.remove('hidden');
+    }, 300);
+  },
 
-    selectedFood: null,
+  selectedFood: null,
 
-    selectFood(jsonStr) {
-        this.selectedFood = JSON.parse(jsonStr);
-        const resultsEl = document.getElementById('tracker-results');
-        const searchEl = document.getElementById('tracker-search');
-        const addBtn = document.getElementById('tracker-add-btn');
-        if (searchEl) searchEl.value = this.selectedFood.name;
-        if (resultsEl) resultsEl.classList.add('hidden');
-        if (addBtn) { addBtn.style.opacity = '1'; addBtn.style.pointerEvents = 'auto'; }
-    },
+  selectFood(index) {
+    this.selectedFood = this.searchResults[index];
+    if (!this.selectedFood) return;
+    const resultsEl = document.getElementById('tracker-results');
+    const searchEl = document.getElementById('tracker-search');
+    const addBtn = document.getElementById('tracker-add-btn');
+    if (searchEl) searchEl.value = this.selectedFood.name;
+    if (resultsEl) resultsEl.classList.add('hidden');
+    if (addBtn) { addBtn.style.opacity = '1'; addBtn.style.pointerEvents = 'auto'; }
+  },
 
-    addSelectedFood() {
-        if (!this.selectedFood) return;
-        const qty = parseFloat(document.getElementById('tracker-qty')?.value) || 1;
-        const food = { ...this.selectedFood, quantity: qty, mealType: this.currentMealType };
-        window.Store.addFoodToLog(food);
-        window.showToast(`✅ ${food.name} added!`);
-        document.getElementById('main-content').innerHTML = this.renderPage();
-        this.selectedFood = null;
-    },
+  addSelectedFood() {
+    if (!this.selectedFood) return;
+    const qty = parseFloat(document.getElementById('tracker-qty')?.value) || 1;
+    const food = { ...this.selectedFood, quantity: qty, mealType: this.currentMealType };
+    window.Store.addFoodToLog(food);
+    window.showToast(`✅ ${food.name} added!`);
+    document.getElementById('main-content').innerHTML = this.renderPage();
+    this.selectedFood = null;
+  },
 
-    removeFood(idx) {
-        window.Store.removeFoodFromLog(idx);
-        document.getElementById('main-content').innerHTML = this.renderPage();
-    },
+  removeFood(idx) {
+    window.Store.removeFoodFromLog(idx);
+    document.getElementById('main-content').innerHTML = this.renderPage();
+  },
 
-    toggleWater(idx) {
-        const log = window.Store.getDayLog();
-        const newCups = idx < log.water ? idx : idx + 1;
-        window.Store.updateWater(newCups);
-        document.getElementById('main-content').innerHTML = this.renderPage();
-    }
+  toggleWater(idx) {
+    const log = window.Store.getDayLog();
+    const newCups = idx < log.water ? idx : idx + 1;
+    window.Store.updateWater(newCups);
+    document.getElementById('main-content').innerHTML = this.renderPage();
+  }
 };
