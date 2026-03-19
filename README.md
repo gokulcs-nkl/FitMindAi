@@ -1,7 +1,13 @@
 # 🧠 FitMind AI — Personalized Workout & Diet Planner for Students
 
 > **AI-powered health & fitness companion** built for hostel students and college life.  
-> Powered by Django backend with browser-based ML models for ultimate performance.
+> Powered by **Django Backend** + **Streamlit Frontend** for a complete full-stack experience.
+
+[![Live Demo](https://img.shields.io/badge/Live-Demo-blue?style=for-the-badge)](https://localhost:8501)
+[![Django](https://img.shields.io/badge/Django-4.2-green?style=for-the-badge&logo=django)](https://djangoproject.com)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.28-red?style=for-the-badge&logo=streamlit)](https://streamlit.io)
+[![TensorFlow.js](https://img.shields.io/badge/TensorFlow.js-4.13-orange?style=for-the-badge&logo=tensorflow)](https://www.tensorflow.org/js)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-blue?style=for-the-badge)](https://gokulcs-nkl.github.io/FitMindAi)
 [![TensorFlow.js](https://img.shields.io/badge/TensorFlow.js-4.13-orange?style=for-the-badge&logo=tensorflow)](https://www.tensorflow.org/js)
