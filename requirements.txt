@@ -3,3 +3,8 @@ Pillow>=10.0.0
 django-cors-headers>=4.3.0
 python-dotenv>=1.0.0
 gunicorn>=21.0.0
+
+# Streamlit Frontend
+Streamlit>=1.28.0
+Plotly>=5.17.0
+pandas>=2.0.0
